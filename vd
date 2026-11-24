@@ -1,0 +1,1444 @@
+-- Popek Menu - Simple Pink Menu with Toggles
+-- Put this in a LocalScript in StarterPlayerScripts or StarterGui
+-- Press RightShift to show/hide the menu
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TextChatService = game:GetService("TextChatService")
+local Lighting = game:GetService("Lighting")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ============================================================
+-- CONFIGURATION
+-- ============================================================
+local CONFIG = {
+    HeaderText = "Popek Menu",
+    Subtitle = "Press RightShift to show / hide",
+
+    -- Palette (built around #c9fff9)
+    WindowColor = Color3.fromRGB(244, 255, 254),
+    HeaderColor = Color3.fromRGB(201, 255, 249), -- #c9fff9
+    PanelColor  = Color3.fromRGB(255, 255, 255),
+    BorderColor = Color3.fromRGB(159, 227, 220),
+    AccentColor = Color3.fromRGB(34, 166, 153),
+    TextColor   = Color3.fromRGB(18, 64, 60),
+    MutedColor  = Color3.fromRGB(93, 138, 133),
+    TrackColor  = Color3.fromRGB(214, 235, 232),
+    KeyColor    = Color3.fromRGB(227, 255, 251),
+
+    -- Toggle button states
+    OnColor  = Color3.fromRGB(34, 166, 153),
+    OnText   = Color3.fromRGB(255, 255, 255),
+    OffColor = Color3.fromRGB(207, 222, 220),
+    OffText  = Color3.fromRGB(77, 107, 103),
+
+    Font = Enum.Font.GothamMedium,
+    BoldFont = Enum.Font.GothamBold,
+
+    -- Pictures (use image asset IDs like "rbxassetid://123456789", or "" to hide)
+    -- Leave BackgroundImage as "" to use the picture built into this script.
+    -- Or put your own uploaded image ID here to use that instead.
+    BackgroundImage = "",
+    BackgroundImageTransparency = 0.05, -- 0 = fully visible, 1 = invisible
+    HeaderLogo = "",                   -- small logo shown left of the title
+    Icons = {                          -- small icon shown left of each option name
+        ["Old Chat"] = "",
+        ["Old Lighting"] = "",
+        ["Hitbox Expander"] = "",
+    },
+}
+
+-- ============================================================
+-- BUILT-IN PICTURE (embedded PNG, loaded with getcustomasset)
+-- Only works where the executor provides writefile + getcustomasset.
+-- Everywhere else, set CONFIG.BackgroundImage to an uploaded image ID.
+-- ============================================================
+local EMBEDDED_BACKGROUND_PNG = "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"
+
+local function decodeBase64(data)
+    local alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    local lookup = {}
+    for i = 1, #alphabet do
+        lookup[string.byte(alphabet, i)] = i - 1
+    end
+
+    local out, count = {}, 0
+    local buffer, bits = 0, 0
+    for i = 1, #data do
+        local value = lookup[string.byte(data, i)]
+        if value then
+            buffer = buffer * 64 + value
+            bits = bits + 6
+            if bits >= 8 then
+                bits = bits - 8
+                local divisor = 2 ^ bits
+                count = count + 1
+                out[count] = string.char(math.floor(buffer / divisor) % 256)
+                buffer = buffer % divisor
+            end
+        end
+    end
+    return table.concat(out)
+end
+
+local function loadEmbeddedBackground()
+    local write = writefile
+    local asset = getcustomasset or getsynasset
+    if not (write and asset) then return nil end
+
+    local ok, result = pcall(function()
+        write("popek_menu_bg.png", decodeBase64(EMBEDDED_BACKGROUND_PNG))
+        return asset("popek_menu_bg.png")
+    end)
+    if ok and type(result) == "string" and result ~= "" then
+        return result
+    end
+    return nil
+end
+
+local backgroundSource = CONFIG.BackgroundImage
+if backgroundSource == "" then
+    backgroundSource = loadEmbeddedBackground() or ""
+end
+local hasBackground = backgroundSource ~= ""
+local WINDOW_HEIGHT = hasBackground and 470 or 400
+local FOOTER_HEIGHT = hasBackground and 125 or 0
+
+-- ============================================================
+-- STATE
+-- ============================================================
+local state = {
+    oldChat = { enabled = false },
+    oldLighting = { enabled = false, keybind = Enum.KeyCode.C, value = 50 },
+    hitboxExpander = { enabled = false, keybind = Enum.KeyCode.H, value = 10 },
+}
+
+-- ============================================================
+-- OLD LIGHTING (classic Da Hood 2023 look)
+-- ============================================================
+local LIGHTING_PROPS = {
+    "Ambient", "Brightness", "ColorShift_Bottom", "ColorShift_Top",
+    "EnvironmentDiffuseScale", "EnvironmentSpecularScale", "GlobalShadows",
+    "OutdoorAmbient", "ShadowSoftness", "ClockTime",
+    "FogColor", "FogStart", "FogEnd",
+}
+
+local OLD_LIGHTING = {
+    Ambient = Color3.fromRGB(105, 105, 115),
+    Brightness = 2,
+    ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
+    ColorShift_Top = Color3.fromRGB(0, 0, 0),
+    EnvironmentDiffuseScale = 0,
+    EnvironmentSpecularScale = 0,
+    GlobalShadows = true,
+    OutdoorAmbient = Color3.fromRGB(128, 128, 128),
+    ShadowSoftness = 0.5,
+    ClockTime = 14,
+    FogColor = Color3.fromRGB(192, 192, 192),
+    FogStart = 0,
+    FogEnd = 1000,
+}
+
+local savedLighting = nil
+local lightingColorCorrection = nil
+
+local function applyOldLighting()
+    if savedLighting then return end -- already applied
+
+    -- Remember the game's current lighting so it can be restored exactly
+    savedLighting = {}
+    for _, prop in ipairs(LIGHTING_PROPS) do
+        pcall(function() savedLighting[prop] = Lighting[prop] end)
+    end
+
+    for prop, value in pairs(OLD_LIGHTING) do
+        pcall(function() Lighting[prop] = value end)
+    end
+
+    if not lightingColorCorrection then
+        local cc = Instance.new("ColorCorrectionEffect")
+        cc.Name = "PopekColorCorrection"
+        cc.Brightness = 0.05
+        cc.Contrast = 0.1
+        cc.Saturation = 0.15
+        cc.TintColor = Color3.fromRGB(245, 240, 255)
+        cc.Parent = Lighting
+        lightingColorCorrection = cc
+    end
+end
+
+local function restoreLighting()
+    if savedLighting then
+        for prop, value in pairs(savedLighting) do
+            pcall(function() Lighting[prop] = value end)
+        end
+        savedLighting = nil
+    end
+    if lightingColorCorrection then
+        lightingColorCorrection:Destroy()
+        lightingColorCorrection = nil
+    end
+end
+
+-- ============================================================
+-- OLD CHAT (classic bubble chat)
+-- Draws the classic Roblox bubbles on YOUR client and hides the
+-- game's own bubbles while it is on. Works with TextChatService
+-- and with legacy chat.
+-- ============================================================
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ChatService = game:GetService("Chat")
+local TextService = game:GetService("TextService")
+local Workspace = game:GetService("Workspace")
+
+local function startClassicBubbles()
+    local alive = true
+    local connections = {}
+    local function track(conn)
+        table.insert(connections, conn)
+        return conn
+    end
+
+    local CHAT_BUBBLE_FONT = Enum.Font.SourceSans
+    local CHAT_BUBBLE_FONT_SIZE_INT = 24
+    local CHAT_BUBBLE_LINE_HEIGHT = CHAT_BUBBLE_FONT_SIZE_INT + 10
+    local CHAT_BUBBLE_TAIL_HEIGHT = 14
+    local CHAT_BUBBLE_WIDTH_PADDING = 30
+    local CHAT_BUBBLE_FADE_SPEED = 1.5
+
+    local BILLBOARD_MAX_WIDTH = 400
+    local BILLBOARD_MAX_HEIGHT = 250
+
+    local ELIPSES = "..."
+    local MaxChatMessageLength = 128
+    local MaxChatMessageLengthExclusive = MaxChatMessageLength - string.len(ELIPSES) - 1
+
+    local NEAR_BUBBLE_DISTANCE = 65
+    local MAX_BUBBLE_DISTANCE = 100
+
+    local BubbleColor = { WHITE = "dub", BLUE = "blu", GREEN = "gre", RED = "red" }
+
+    local BubbleChatScreenGui = Instance.new("ScreenGui")
+    BubbleChatScreenGui.Name = "PopekBubbleChat"
+    BubbleChatScreenGui.ResetOnSpawn = false
+    BubbleChatScreenGui.Parent = playerGui
+
+    local function lerpLength(msg, min, max)
+        return min + (max - min) * math.min(string.len(msg) / 75.0, 1.0)
+    end
+
+    local function createFifo()
+        local this = {}
+        this.data = {}
+
+        local emptyEvent = Instance.new("BindableEvent")
+        this.Emptied = emptyEvent.Event
+
+        function this:Size() return #this.data end
+        function this:Empty() return this:Size() <= 0 end
+        function this:PopFront()
+            table.remove(this.data, 1)
+            if this:Empty() then emptyEvent:Fire() end
+        end
+        function this:Front() return this.data[1] end
+        function this:Get(index) return this.data[index] end
+        function this:PushBack(value) table.insert(this.data, value) end
+        function this:GetData() return this.data end
+
+        return this
+    end
+
+    local function createCharacterChats()
+        local this = {}
+        this.Fifo = createFifo()
+        this.BillboardGui = nil
+        return this
+    end
+
+    local function createMap()
+        local this = {}
+        this.data = {}
+        local count = 0
+
+        function this:Size() return count end
+
+        function this:Erase(key)
+            if this.data[key] then count = count - 1 end
+            this.data[key] = nil
+        end
+
+        function this:Set(key, value)
+            this.data[key] = value
+            if value then count = count + 1 end
+        end
+
+        function this:Get(key)
+            if not key then return end
+            if not this.data[key] then
+                this.data[key] = createCharacterChats()
+                local emptiedCon
+                emptiedCon = this.data[key].Fifo.Emptied:Connect(function()
+                    emptiedCon:Disconnect()
+                    this:Erase(key)
+                end)
+            end
+            return this.data[key]
+        end
+
+        function this:GetData() return this.data end
+
+        return this
+    end
+
+    local function createChatLine(message, bubbleColor, isLocalPlayer)
+        local this = {}
+
+        function this:ComputeBubbleLifetime(msg, isSelf)
+            if isSelf then
+                return lerpLength(msg, 8, 15)
+            else
+                return lerpLength(msg, 12, 20)
+            end
+        end
+
+        this.Origin = nil
+        this.RenderBubble = nil
+        this.Message = message
+        this.BubbleDieDelay = this:ComputeBubbleLifetime(message, isLocalPlayer)
+        this.BubbleColor = bubbleColor
+        this.IsLocalPlayer = isLocalPlayer
+
+        return this
+    end
+
+    local function createPlayerChatLine(plr, message, isLocalPlayer)
+        local this = createChatLine(message, BubbleColor.WHITE, isLocalPlayer)
+        if plr then
+            this.User = plr.Name
+            this.Origin = plr.Character
+        end
+        return this
+    end
+
+    local function createGameChatLine(origin, message, isLocalPlayer, bubbleColor)
+        local this = createChatLine(message, bubbleColor, isLocalPlayer)
+        this.Origin = origin
+        return this
+    end
+
+    local function createChatBubbleMain(filePrefix, sliceRect)
+        local chatBubbleMain = Instance.new("ImageLabel")
+        chatBubbleMain.Name = "ChatBubble"
+        chatBubbleMain.ScaleType = Enum.ScaleType.Slice
+        chatBubbleMain.SliceCenter = sliceRect
+        chatBubbleMain.Image = "rbxasset://textures/" .. tostring(filePrefix) .. ".png"
+        chatBubbleMain.BackgroundTransparency = 1
+        chatBubbleMain.BorderSizePixel = 0
+        chatBubbleMain.Size = UDim2.new(1.0, 0, 1.0, 0)
+        chatBubbleMain.Position = UDim2.new(0, 0, 0, 0)
+        return chatBubbleMain
+    end
+
+    local function createChatBubbleTail(position, size)
+        local chatBubbleTail = Instance.new("ImageLabel")
+        chatBubbleTail.Name = "ChatBubbleTail"
+        chatBubbleTail.Image = "rbxasset://textures/ui/dialog_tail.png"
+        chatBubbleTail.BackgroundTransparency = 1
+        chatBubbleTail.BorderSizePixel = 0
+        chatBubbleTail.Position = position
+        chatBubbleTail.Size = size
+        return chatBubbleTail
+    end
+
+    local function createChatBubbleWithTail(filePrefix, position, size, sliceRect)
+        local chatBubbleMain = createChatBubbleMain(filePrefix, sliceRect)
+        local chatBubbleTail = createChatBubbleTail(position, size)
+        chatBubbleTail.Parent = chatBubbleMain
+        return chatBubbleMain
+    end
+
+    local function createScaledChatBubbleWithTail(filePrefix, frameScaleSize, position, sliceRect)
+        local chatBubbleMain = createChatBubbleMain(filePrefix, sliceRect)
+
+        local frame = Instance.new("Frame")
+        frame.Name = "ChatBubbleTailFrame"
+        frame.BackgroundTransparency = 1
+        frame.SizeConstraint = Enum.SizeConstraint.RelativeXX
+        frame.Position = UDim2.new(0.5, 0, 1, 0)
+        frame.Size = UDim2.new(frameScaleSize, 0, frameScaleSize, 0)
+        frame.Parent = chatBubbleMain
+
+        local chatBubbleTail = createChatBubbleTail(position, UDim2.new(1, 0, 0.5, 0))
+        chatBubbleTail.Parent = frame
+
+        return chatBubbleMain
+    end
+
+    local this = {}
+    this.ChatBubble = {}
+    this.ChatBubbleWithTail = {}
+    this.ScalingChatBubbleWithTail = {}
+    this.CharacterSortedMsg = createMap()
+
+    local function initChatBubbleType(chatBubbleType, fileName, isInset, sliceRect)
+        this.ChatBubble[chatBubbleType] = createChatBubbleMain(fileName, sliceRect)
+        this.ChatBubbleWithTail[chatBubbleType] = createChatBubbleWithTail(
+            fileName,
+            UDim2.new(0.5, -CHAT_BUBBLE_TAIL_HEIGHT, 1, isInset and -1 or 0),
+            UDim2.new(0, 30, 0, CHAT_BUBBLE_TAIL_HEIGHT),
+            sliceRect)
+        this.ScalingChatBubbleWithTail[chatBubbleType] = createScaledChatBubbleWithTail(
+            fileName, 0.5, UDim2.new(-0.5, 0, 0, isInset and -1 or 0), sliceRect)
+    end
+
+    initChatBubbleType(BubbleColor.WHITE, "ui/dialog_white", false, Rect.new(5, 5, 15, 15))
+    initChatBubbleType(BubbleColor.BLUE, "ui/dialog_blue", true, Rect.new(7, 7, 33, 33))
+    initChatBubbleType(BubbleColor.RED, "ui/dialog_red", true, Rect.new(7, 7, 33, 33))
+    initChatBubbleType(BubbleColor.GREEN, "ui/dialog_green", true, Rect.new(7, 7, 33, 33))
+
+    function this:SanitizeChatLine(msg)
+        if string.len(msg) > MaxChatMessageLengthExclusive then
+            return string.sub(msg, 1, MaxChatMessageLengthExclusive + string.len(ELIPSES))
+        else
+            return msg
+        end
+    end
+
+    local function createBillboardInstance(adornee)
+        local billboardGui = Instance.new("BillboardGui")
+        billboardGui.Adornee = adornee
+        billboardGui.Size = UDim2.new(0, BILLBOARD_MAX_WIDTH, 0, BILLBOARD_MAX_HEIGHT)
+        billboardGui.StudsOffset = Vector3.new(0, 1.5, 2)
+        billboardGui.Parent = BubbleChatScreenGui
+
+        local billboardFrame = Instance.new("Frame")
+        billboardFrame.Name = "BillboardFrame"
+        billboardFrame.Size = UDim2.new(1, 0, 1, 0)
+        billboardFrame.Position = UDim2.new(0, 0, -0.5, 0)
+        billboardFrame.BackgroundTransparency = 1
+        billboardFrame.Parent = billboardGui
+
+        local billboardChildRemovedCon
+        billboardChildRemovedCon = billboardFrame.ChildRemoved:Connect(function()
+            if #billboardFrame:GetChildren() <= 1 then
+                billboardChildRemovedCon:Disconnect()
+                billboardGui:Destroy()
+            end
+        end)
+
+        this:CreateSmallTalkBubble(BubbleColor.WHITE).Parent = billboardFrame
+
+        return billboardGui
+    end
+
+    function this:CreateBillboardGuiHelper(instance, onlyCharacter)
+        if instance and not this.CharacterSortedMsg:Get(instance)["BillboardGui"] then
+            if not onlyCharacter then
+                if instance:IsA("BasePart") then
+                    local billboardGui = createBillboardInstance(instance)
+                    this.CharacterSortedMsg:Get(instance)["BillboardGui"] = billboardGui
+                    return
+                end
+            end
+
+            if instance:IsA("Model") then
+                local head = instance:FindFirstChild("Head")
+                if head and head:IsA("BasePart") then
+                    local billboardGui = createBillboardInstance(head)
+                    this.CharacterSortedMsg:Get(instance)["BillboardGui"] = billboardGui
+                end
+            end
+        end
+    end
+
+    local function distanceToBubbleOrigin(origin)
+        local cam = Workspace.CurrentCamera
+        if not origin or not cam then return 100000 end
+        return (origin.Position - cam.CFrame.Position).Magnitude
+    end
+
+    local function isPartOfLocalPlayer(adornee)
+        if adornee and player.Character then
+            return adornee:IsDescendantOf(player.Character)
+        end
+    end
+
+    function this:SetBillboardLODNear(billboardGui)
+        local isLocalPlayer = isPartOfLocalPlayer(billboardGui.Adornee)
+        billboardGui.Size = UDim2.new(0, BILLBOARD_MAX_WIDTH, 0, BILLBOARD_MAX_HEIGHT)
+        billboardGui.StudsOffset = Vector3.new(0, isLocalPlayer and 1.5 or 2.5, isLocalPlayer and 2 or 0.1)
+        billboardGui.Enabled = true
+        local billChildren = billboardGui.BillboardFrame:GetChildren()
+        for i = 1, #billChildren do
+            billChildren[i].Visible = true
+        end
+        billboardGui.BillboardFrame.SmallTalkBubble.Visible = false
+    end
+
+    function this:SetBillboardLODDistant(billboardGui)
+        local isLocalPlayer = isPartOfLocalPlayer(billboardGui.Adornee)
+        billboardGui.Size = UDim2.new(4, 0, 3, 0)
+        billboardGui.StudsOffset = Vector3.new(0, 3, isLocalPlayer and 2 or 0.1)
+        billboardGui.Enabled = true
+        local billChildren = billboardGui.BillboardFrame:GetChildren()
+        for i = 1, #billChildren do
+            billChildren[i].Visible = false
+        end
+        billboardGui.BillboardFrame.SmallTalkBubble.Visible = true
+    end
+
+    function this:SetBillboardLODVeryFar(billboardGui)
+        billboardGui.Enabled = false
+    end
+
+    function this:SetBillboardGuiLOD(billboardGui, origin)
+        if not origin or not billboardGui.Parent then return end
+
+        if origin:IsA("Model") then
+            local head = origin:FindFirstChild("Head")
+            if not head then origin = origin.PrimaryPart else origin = head end
+        end
+        if not origin then return end
+
+        local bubbleDistance = distanceToBubbleOrigin(origin)
+
+        if bubbleDistance < NEAR_BUBBLE_DISTANCE then
+            this:SetBillboardLODNear(billboardGui)
+        elseif bubbleDistance < MAX_BUBBLE_DISTANCE then
+            this:SetBillboardLODDistant(billboardGui)
+        else
+            this:SetBillboardLODVeryFar(billboardGui)
+        end
+    end
+
+    function this:CameraCFrameChanged()
+        for index, value in pairs(this.CharacterSortedMsg:GetData()) do
+            local playerBillboardGui = value["BillboardGui"]
+            if playerBillboardGui then this:SetBillboardGuiLOD(playerBillboardGui, index) end
+        end
+    end
+
+    function this:CreateBubbleText(message)
+        local bubbleText = Instance.new("TextLabel")
+        bubbleText.Name = "BubbleText"
+        bubbleText.BackgroundTransparency = 1
+        bubbleText.Position = UDim2.new(0, CHAT_BUBBLE_WIDTH_PADDING / 2, 0, 0)
+        bubbleText.Size = UDim2.new(1, -CHAT_BUBBLE_WIDTH_PADDING, 1, 0)
+        bubbleText.Font = CHAT_BUBBLE_FONT
+        bubbleText.ClipsDescendants = true
+        bubbleText.TextWrapped = true
+        bubbleText.TextSize = CHAT_BUBBLE_FONT_SIZE_INT
+        bubbleText.Text = message
+        bubbleText.Visible = false
+        return bubbleText
+    end
+
+    function this:CreateSmallTalkBubble(chatBubbleType)
+        local smallTalkBubble = this.ScalingChatBubbleWithTail[chatBubbleType]:Clone()
+        smallTalkBubble.Name = "SmallTalkBubble"
+        smallTalkBubble.AnchorPoint = Vector2.new(0, 0.5)
+        smallTalkBubble.Position = UDim2.new(0, 0, 0.5, 0)
+        smallTalkBubble.Visible = false
+        local text = this:CreateBubbleText("...")
+        text.TextScaled = true
+        text.TextWrapped = false
+        text.Visible = true
+        text.Parent = smallTalkBubble
+        return smallTalkBubble
+    end
+
+    function this:UpdateChatLinesForOrigin(origin, currentBubbleYPos)
+        local bubbleQueue = this.CharacterSortedMsg:Get(origin).Fifo
+        local bubbleQueueSize = bubbleQueue:Size()
+        local bubbleQueueData = bubbleQueue:GetData()
+        if #bubbleQueueData <= 1 then return end
+
+        for index = (#bubbleQueueData - 1), 1, -1 do
+            local value = bubbleQueueData[index]
+            local bubble = value.RenderBubble
+            if not bubble then return end
+            local bubblePos = bubbleQueueSize - index + 1
+
+            if bubblePos > 1 then
+                local tail = bubble:FindFirstChild("ChatBubbleTail")
+                if tail then tail:Destroy() end
+                local bubbleText = bubble:FindFirstChild("BubbleText")
+                if bubbleText then bubbleText.TextTransparency = 0.5 end
+            end
+
+            local udimValue = UDim2.new(bubble.Position.X.Scale, bubble.Position.X.Offset,
+                1, currentBubbleYPos - bubble.Size.Y.Offset - CHAT_BUBBLE_TAIL_HEIGHT)
+            bubble:TweenPosition(udimValue, Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.1, true)
+            currentBubbleYPos = currentBubbleYPos - bubble.Size.Y.Offset - CHAT_BUBBLE_TAIL_HEIGHT
+        end
+    end
+
+    function this:DestroyBubble(bubbleQueue, bubbleToDestroy)
+        if not bubbleQueue then return end
+        if bubbleQueue:Empty() then return end
+
+        local bubble = bubbleQueue:Front().RenderBubble
+        if not bubble then
+            bubbleQueue:PopFront()
+            return
+        end
+
+        task.spawn(function()
+            while alive do
+                local front = bubbleQueue:Front()
+                if not front or front.RenderBubble == bubbleToDestroy then break end
+                task.wait()
+            end
+
+            local front = bubbleQueue:Front()
+            if not alive or not front then return end
+            bubble = front.RenderBubble
+            if not bubble then return end
+
+            local bubbleText = bubble:FindFirstChild("BubbleText")
+            local bubbleTail = bubble:FindFirstChild("ChatBubbleTail")
+
+            while alive and bubble and bubble.Parent and bubble.ImageTransparency < 1 do
+                local timeBetween = task.wait()
+                if bubble then
+                    local fadeAmount = timeBetween * CHAT_BUBBLE_FADE_SPEED
+                    bubble.ImageTransparency = bubble.ImageTransparency + fadeAmount
+                    if bubbleText then bubbleText.TextTransparency = bubbleText.TextTransparency + fadeAmount end
+                    if bubbleTail then bubbleTail.ImageTransparency = bubbleTail.ImageTransparency + fadeAmount end
+                end
+            end
+
+            if alive and bubble then
+                bubble:Destroy()
+                bubbleQueue:PopFront()
+            end
+        end)
+    end
+
+    function this:CreateChatLineRender(instance, line, onlyCharacter, fifo)
+        if not instance then return end
+
+        if not this.CharacterSortedMsg:Get(instance)["BillboardGui"] then
+            this:CreateBillboardGuiHelper(instance, onlyCharacter)
+        end
+
+        local billboardGui = this.CharacterSortedMsg:Get(instance)["BillboardGui"]
+        if billboardGui then
+            local chatBubbleRender = this.ChatBubbleWithTail[line.BubbleColor]:Clone()
+            chatBubbleRender.Visible = false
+            local bubbleText = this:CreateBubbleText(line.Message)
+
+            bubbleText.Parent = chatBubbleRender
+            chatBubbleRender.Parent = billboardGui.BillboardFrame
+
+            line.RenderBubble = chatBubbleRender
+
+            local currentTextBounds = TextService:GetTextSize(
+                bubbleText.Text, CHAT_BUBBLE_FONT_SIZE_INT, CHAT_BUBBLE_FONT,
+                Vector2.new(BILLBOARD_MAX_WIDTH, BILLBOARD_MAX_HEIGHT))
+            local bubbleWidthScale = math.max((currentTextBounds.X + CHAT_BUBBLE_WIDTH_PADDING) / BILLBOARD_MAX_WIDTH, 0.1)
+            local numOflines = (currentTextBounds.Y / CHAT_BUBBLE_FONT_SIZE_INT)
+
+            chatBubbleRender.Size = UDim2.new(0, 0, 0, 0)
+            chatBubbleRender.Position = UDim2.new(0.5, 0, 1, 0)
+
+            local newChatBubbleOffsetSizeY = numOflines * CHAT_BUBBLE_LINE_HEIGHT
+
+            chatBubbleRender:TweenSizeAndPosition(
+                UDim2.new(bubbleWidthScale, 0, 0, newChatBubbleOffsetSizeY),
+                UDim2.new((1 - bubbleWidthScale) / 2, 0, 1, -newChatBubbleOffsetSizeY),
+                Enum.EasingDirection.Out, Enum.EasingStyle.Elastic, 0.1, true,
+                function() bubbleText.Visible = true end)
+
+            this:SetBillboardGuiLOD(billboardGui, line.Origin)
+            this:UpdateChatLinesForOrigin(line.Origin, -newChatBubbleOffsetSizeY)
+
+            task.delay(line.BubbleDieDelay, function()
+                if alive then
+                    this:DestroyBubble(fifo, chatBubbleRender)
+                end
+            end)
+        end
+    end
+
+    function this:OnPlayerChatMessage(sourcePlayer, message)
+        local fromOthers = sourcePlayer ~= player
+        local safeMessage = this:SanitizeChatLine(message)
+        local line = createPlayerChatLine(sourcePlayer, safeMessage, not fromOthers)
+
+        if sourcePlayer and line.Origin then
+            local fifo = this.CharacterSortedMsg:Get(line.Origin).Fifo
+            fifo:PushBack(line)
+            this:CreateChatLineRender(sourcePlayer.Character, line, true, fifo)
+        end
+    end
+
+    function this:OnGameChatMessage(origin, message, color)
+        local fromOthers = player.Character ~= origin
+
+        local bubbleColor = BubbleColor.WHITE
+        if color == Enum.ChatColor.Blue then bubbleColor = BubbleColor.BLUE
+        elseif color == Enum.ChatColor.Green then bubbleColor = BubbleColor.GREEN
+        elseif color == Enum.ChatColor.Red then bubbleColor = BubbleColor.RED end
+
+        local safeMessage = this:SanitizeChatLine(message)
+        local line = createGameChatLine(origin, safeMessage, not fromOthers, bubbleColor)
+
+        this.CharacterSortedMsg:Get(line.Origin).Fifo:PushBack(line)
+        this:CreateChatLineRender(origin, line, false, this.CharacterSortedMsg:Get(line.Origin).Fifo)
+    end
+
+    -- Camera LOD updates
+    local cameraConn
+    local function hookCamera()
+        if cameraConn then cameraConn:Disconnect() cameraConn = nil end
+        local cam = Workspace.CurrentCamera
+        if cam then
+            cameraConn = cam:GetPropertyChangedSignal("CFrame"):Connect(function()
+                this:CameraCFrameChanged()
+            end)
+        end
+    end
+    hookCamera()
+    track(Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(hookCamera))
+    track({ Disconnect = function() if cameraConn then cameraConn:Disconnect() end end })
+
+    -- --------------------------------------------------------
+    -- Message sources + hiding the game's own bubbles
+    -- --------------------------------------------------------
+    local hiddenNative = {}
+    local usingTCS = TextChatService.ChatVersion == Enum.ChatVersion.TextChatService
+
+    local function findPlayerByName(playerName)
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr.Name == playerName then return plr end
+        end
+    end
+
+    if usingTCS then
+        -- Turn off the game's own new-style bubbles so nothing is drawn twice
+        hiddenNative.cfgs = {}
+        local function lockConfig(cfg)
+            if hiddenNative.cfgs[cfg] ~= nil then return end
+            hiddenNative.cfgs[cfg] = cfg.Enabled
+            cfg.Enabled = false
+            -- If the game (or server) turns it back on, switch it off again
+            track(cfg:GetPropertyChangedSignal("Enabled"):Connect(function()
+                if alive and cfg.Enabled then cfg.Enabled = false end
+            end))
+        end
+        for _, child in ipairs(TextChatService:GetChildren()) do
+            if child:IsA("BubbleChatConfiguration") then lockConfig(child) end
+        end
+        track(TextChatService.ChildAdded:Connect(function(child)
+            if child:IsA("BubbleChatConfiguration") then lockConfig(child) end
+        end))
+
+        -- Backup: if a modern bubble still gets created, make it invisible
+        hiddenNative.callbackSet = pcall(function()
+            TextChatService.OnBubbleAdded = function()
+                local props = Instance.new("BubbleChatMessageProperties")
+                props.BackgroundTransparency = 1
+                props.TextSize = 1
+                return props
+            end
+        end)
+
+        local seen = {}
+        local function unescape(text)
+            text = text:gsub("&lt;", "<"):gsub("&gt;", ">"):gsub("&quot;", '"'):gsub("&apos;", "'"):gsub("&amp;", "&")
+            return text
+        end
+
+        track(TextChatService.MessageReceived:Connect(function(msg)
+            if msg.Status ~= Enum.TextChatMessageStatus.Success
+                and msg.Status ~= Enum.TextChatMessageStatus.Sending then
+                return
+            end
+            local src = msg.TextSource
+            if not src then return end -- system message
+            if msg.MessageId ~= "" then
+                if seen[msg.MessageId] then return end
+                seen[msg.MessageId] = true
+            end
+            local channel = msg.TextChannel
+            if channel and string.find(channel.Name, "RBXWhisper", 1, true) then return end
+
+            local sender = Players:GetPlayerByUserId(src.UserId)
+            if not sender then return end
+            this:OnPlayerChatMessage(sender, unescape(msg.Text))
+        end))
+    else
+        -- Hide the game's own legacy bubbles so nothing is drawn twice
+        local nativeGui = playerGui:FindFirstChild("BubbleChat")
+        if nativeGui and nativeGui:IsA("ScreenGui") then
+            hiddenNative.gui = nativeGui
+            hiddenNative.guiEnabled = nativeGui.Enabled
+            nativeGui.Enabled = false
+        end
+
+        track(ChatService.Chatted:Connect(function(origin, message, color)
+            this:OnGameChatMessage(origin, message, color)
+        end))
+
+        local function showOwnFilteredMessage()
+            local ok, result = pcall(function()
+                local modules = ChatService:FindFirstChild("ClientChatModules")
+                local settings = modules and modules:FindFirstChild("ChatSettings")
+                return settings and require(settings).ShowUserOwnFilteredMessage
+            end)
+            return ok and result or false
+        end
+
+        local function isAllowedType(messageData)
+            local allowed = { "Message", "Whisper" }
+            pcall(function()
+                local modules = ChatService:FindFirstChild("ClientChatModules")
+                local settings = modules and modules:FindFirstChild("ChatSettings")
+                if settings then
+                    local types = require(settings).BubbleChatMessageTypes
+                    if types then allowed = types end
+                end
+            end)
+            for i = 1, #allowed do
+                if allowed[i] == messageData.MessageType then return true end
+            end
+            return false
+        end
+
+        task.spawn(function()
+            local events = ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents", 10)
+            if not alive or not events then return end
+            local onNew = events:WaitForChild("OnNewMessage", 5)
+            local onDone = events:WaitForChild("OnMessageDoneFiltering", 5)
+            if not alive or not onNew or not onDone then return end
+
+            track(onNew.OnClientEvent:Connect(function(messageData)
+                if not isAllowedType(messageData) then return end
+                local sender = findPlayerByName(messageData.FromSpeaker)
+                if not sender then return end
+
+                if not messageData.IsFiltered or messageData.FromSpeaker == player.Name then
+                    if messageData.FromSpeaker ~= player.Name or showOwnFilteredMessage() then
+                        return
+                    end
+                end
+                this:OnPlayerChatMessage(sender, messageData.Message)
+            end))
+
+            track(onDone.OnClientEvent:Connect(function(messageData)
+                if not isAllowedType(messageData) then return end
+                local sender = findPlayerByName(messageData.FromSpeaker)
+                if not sender then return end
+
+                if messageData.FromSpeaker == player.Name and not showOwnFilteredMessage() then
+                    return
+                end
+                this:OnPlayerChatMessage(sender, messageData.Message)
+            end))
+        end)
+    end
+
+    -- Hide any other bubble GUIs the game draws (by name), and keep them hidden
+    local hiddenGuis = {}
+    local function isOtherBubbleGui(inst)
+        if not (inst:IsA("BillboardGui") or inst:IsA("ScreenGui") or inst:IsA("SurfaceGui")) then
+            return false
+        end
+        if inst == BubbleChatScreenGui or inst:IsDescendantOf(BubbleChatScreenGui) then
+            return false
+        end
+        local name = string.lower(inst.Name)
+        return string.find(name, "bubblechat", 1, true) ~= nil
+            or string.find(name, "chatbubble", 1, true) ~= nil
+    end
+    local function hideGui(inst)
+        if hiddenGuis[inst] ~= nil then return end
+        hiddenGuis[inst] = inst.Enabled
+        inst.Enabled = false
+        track(inst:GetPropertyChangedSignal("Enabled"):Connect(function()
+            if alive and inst.Enabled then inst.Enabled = false end
+        end))
+    end
+    local function watchForBubbleGuis(root)
+        for _, d in ipairs(root:GetDescendants()) do
+            if isOtherBubbleGui(d) then hideGui(d) end
+        end
+        track(root.DescendantAdded:Connect(function(d)
+            if isOtherBubbleGui(d) then hideGui(d) end
+        end))
+    end
+    watchForBubbleGuis(playerGui)
+    watchForBubbleGuis(Workspace)
+    pcall(function() watchForBubbleGuis(game:GetService("CoreGui")) end)
+
+    local controller = {}
+    function controller.Destroy()
+        alive = false
+        for _, conn in ipairs(connections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        BubbleChatScreenGui:Destroy()
+        if hiddenNative.callbackSet then
+            pcall(function() TextChatService.OnBubbleAdded = nil end)
+        end
+        for cfg, wasEnabled in pairs(hiddenNative.cfgs or {}) do
+            if cfg.Parent then cfg.Enabled = wasEnabled end
+        end
+        for gui, wasEnabled in pairs(hiddenGuis) do
+            if gui.Parent then gui.Enabled = wasEnabled end
+        end
+        if hiddenNative.gui then hiddenNative.gui.Enabled = hiddenNative.guiEnabled end
+    end
+    return controller
+end
+
+local classicBubbles = nil
+
+
+-- ============================================================
+-- GUI CREATION
+-- ============================================================
+local old = playerGui:FindFirstChild("PopekMenu")
+if old then old:Destroy() end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PopekMenu"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 999
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Enabled = true
+screenGui.Parent = playerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 420, 0, WINDOW_HEIGHT)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -WINDOW_HEIGHT / 2)
+mainFrame.BackgroundColor3 = CONFIG.WindowColor
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 14)
+corner.Parent = mainFrame
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = CONFIG.BorderColor
+stroke.Thickness = 1
+stroke.Parent = mainFrame
+
+if hasBackground then
+    local bgImage = Instance.new("ImageLabel")
+    bgImage.Name = "BackgroundImage"
+    bgImage.AnchorPoint = Vector2.new(0.5, 1)
+    bgImage.Size = UDim2.new(0, 220, 0, 111)
+    bgImage.Position = UDim2.new(0.5, 0, 1, -8)
+    bgImage.BackgroundTransparency = 1
+    bgImage.Image = backgroundSource
+    bgImage.ImageTransparency = CONFIG.BackgroundImageTransparency
+    bgImage.ScaleType = Enum.ScaleType.Fit
+    bgImage.ZIndex = 1
+    bgImage.Parent = mainFrame
+end
+
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 52)
+header.BackgroundColor3 = CONFIG.HeaderColor
+header.BorderSizePixel = 0
+header.ZIndex = 2
+header.Parent = mainFrame
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 14)
+headerCorner.Parent = header
+
+-- Square off the header's bottom edge and add a divider line
+local headerFill = Instance.new("Frame")
+headerFill.Name = "HeaderFill"
+headerFill.Size = UDim2.new(1, 0, 0, 14)
+headerFill.Position = UDim2.new(0, 0, 1, -14)
+headerFill.BackgroundColor3 = CONFIG.HeaderColor
+headerFill.BorderSizePixel = 0
+headerFill.ZIndex = 2
+headerFill.Parent = header
+
+local headerDivider = Instance.new("Frame")
+headerDivider.Name = "Divider"
+headerDivider.Size = UDim2.new(1, 0, 0, 1)
+headerDivider.Position = UDim2.new(0, 0, 1, 0)
+headerDivider.BackgroundColor3 = CONFIG.BorderColor
+headerDivider.BorderSizePixel = 0
+headerDivider.ZIndex = 2
+headerDivider.Parent = header
+
+local headerTextX = (CONFIG.HeaderLogo ~= "") and 52 or 16
+
+local headerTitle = Instance.new("TextLabel")
+headerTitle.Name = "Title"
+headerTitle.Size = UDim2.new(1, -60, 0, 24)
+headerTitle.Position = UDim2.new(0, headerTextX, 0, 7)
+headerTitle.BackgroundTransparency = 1
+headerTitle.Text = CONFIG.HeaderText
+headerTitle.TextColor3 = CONFIG.TextColor
+headerTitle.TextSize = 18
+headerTitle.Font = CONFIG.BoldFont
+headerTitle.TextXAlignment = Enum.TextXAlignment.Left
+headerTitle.ZIndex = 3
+headerTitle.Parent = header
+
+local headerSubtitle = Instance.new("TextLabel")
+headerSubtitle.Name = "Subtitle"
+headerSubtitle.Size = UDim2.new(1, -60, 0, 14)
+headerSubtitle.Position = UDim2.new(0, headerTextX, 0, 30)
+headerSubtitle.BackgroundTransparency = 1
+headerSubtitle.Text = CONFIG.Subtitle
+headerSubtitle.TextColor3 = CONFIG.MutedColor
+headerSubtitle.TextSize = 11
+headerSubtitle.Font = CONFIG.Font
+headerSubtitle.TextXAlignment = Enum.TextXAlignment.Left
+headerSubtitle.ZIndex = 3
+headerSubtitle.Parent = header
+
+if CONFIG.HeaderLogo ~= "" then
+    local logo = Instance.new("ImageLabel")
+    logo.Name = "Logo"
+    logo.Size = UDim2.new(0, 30, 0, 30)
+    logo.Position = UDim2.new(0, 14, 0.5, -15)
+    logo.BackgroundTransparency = 1
+    logo.Image = CONFIG.HeaderLogo
+    logo.ScaleType = Enum.ScaleType.Fit
+    logo.ZIndex = 3
+    logo.Parent = header
+
+    local logoCorner = Instance.new("UICorner")
+    logoCorner.CornerRadius = UDim.new(0, 8)
+    logoCorner.Parent = logo
+end
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseButton"
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -38, 0.5, -15)
+closeBtn.BackgroundColor3 = CONFIG.WindowColor
+closeBtn.Text = "X"
+closeBtn.TextColor3 = CONFIG.TextColor
+closeBtn.TextSize = 13
+closeBtn.Font = CONFIG.BoldFont
+closeBtn.ZIndex = 3
+closeBtn.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui.Enabled = false
+end)
+closeBtn.MouseEnter:Connect(function()
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 225, 222)
+end)
+closeBtn.MouseLeave:Connect(function()
+    closeBtn.BackgroundColor3 = CONFIG.WindowColor
+end)
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "OptionsScroll"
+scrollFrame.Size = UDim2.new(1, -20, 1, -65 - FOOTER_HEIGHT)
+scrollFrame.Position = UDim2.new(0, 10, 0, 58)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = CONFIG.AccentColor
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.ZIndex = 2
+scrollFrame.Parent = mainFrame
+
+local scrollLayout = Instance.new("UIListLayout")
+scrollLayout.Padding = UDim.new(0, 10)
+scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+scrollLayout.Parent = scrollFrame
+
+local scrollPadding = Instance.new("UIPadding")
+scrollPadding.PaddingTop = UDim.new(0, 5)
+scrollPadding.PaddingBottom = UDim.new(0, 10)
+scrollPadding.PaddingLeft = UDim.new(0, 5)
+scrollPadding.PaddingRight = UDim.new(0, 5)
+scrollPadding.Parent = scrollFrame
+
+-- ============================================================
+-- HELPERS
+-- ============================================================
+local function makeOptionFrame(name, parent, height)
+    local optionFrame = Instance.new("Frame")
+    optionFrame.Name = name .. "Option"
+    optionFrame.Size = UDim2.new(1, 0, 0, height)
+    optionFrame.BackgroundColor3 = CONFIG.PanelColor
+    optionFrame.BackgroundTransparency = 0
+    optionFrame.BorderSizePixel = 0
+    optionFrame.ZIndex = 2
+    optionFrame.Parent = parent
+
+    local optCorner = Instance.new("UICorner")
+    optCorner.CornerRadius = UDim.new(0, 10)
+    optCorner.Parent = optionFrame
+
+    local optStroke = Instance.new("UIStroke")
+    optStroke.Color = CONFIG.BorderColor
+    optStroke.Thickness = 1
+    optStroke.Transparency = 0
+    optStroke.Parent = optionFrame
+
+    local iconId = CONFIG.Icons[name]
+    local titleX = 12
+    if iconId and iconId ~= "" then
+        local icon = Instance.new("ImageLabel")
+        icon.Name = "Icon"
+        icon.Size = UDim2.new(0, 22, 0, 22)
+        icon.Position = UDim2.new(0, 12, 0, 8)
+        icon.BackgroundTransparency = 1
+        icon.Image = iconId
+        icon.ScaleType = Enum.ScaleType.Fit
+        icon.ZIndex = 3
+        icon.Parent = optionFrame
+        titleX = 42
+    end
+
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -20, 0, 25)
+    title.Position = UDim2.new(0, titleX, 0, 6)
+    title.BackgroundTransparency = 1
+    title.Text = name
+    title.TextColor3 = CONFIG.TextColor
+    title.TextSize = 15
+    title.Font = CONFIG.BoldFont
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 3
+    title.Parent = optionFrame
+
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Name = "ToggleButton"
+    toggleBtn.Size = UDim2.new(0, 70, 0, 28)
+    toggleBtn.Position = UDim2.new(1, -82, 0, 6)
+    toggleBtn.BackgroundColor3 = CONFIG.OffColor
+    toggleBtn.Text = "OFF"
+    toggleBtn.TextColor3 = CONFIG.OffText
+    toggleBtn.TextSize = 12
+    toggleBtn.Font = CONFIG.BoldFont
+    toggleBtn.ZIndex = 3
+    toggleBtn.Parent = optionFrame
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 8)
+    toggleCorner.Parent = toggleBtn
+
+    return optionFrame, toggleBtn
+end
+
+-- ============================================================
+-- OPTION: OLD CHAT
+-- ============================================================
+local function createOldChatOption(parent)
+    local optionFrame, toggleBtn = makeOptionFrame("Old Chat", parent, 48)
+
+    local function updateToggleVisual()
+        if state.oldChat.enabled then
+            toggleBtn.BackgroundColor3 = CONFIG.OnColor
+            toggleBtn.Text = "ON"
+            toggleBtn.TextColor3 = CONFIG.OnText
+        else
+            toggleBtn.BackgroundColor3 = CONFIG.OffColor
+            toggleBtn.Text = "OFF"
+            toggleBtn.TextColor3 = CONFIG.OffText
+        end
+    end
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        state.oldChat.enabled = not state.oldChat.enabled
+        if state.oldChat.enabled then
+            local ok, result = pcall(startClassicBubbles)
+            if ok and result then
+                classicBubbles = result
+            else
+                warn("[Popek Menu] Chat error: " .. tostring(result))
+                state.oldChat.enabled = false
+            end
+        else
+            if classicBubbles then
+                pcall(classicBubbles.Destroy)
+                classicBubbles = nil
+            end
+        end
+        updateToggleVisual()
+    end)
+
+    updateToggleVisual()
+end
+
+-- ============================================================
+-- OPTION: OLD LIGHTING
+-- ============================================================
+local function createOldLightingOption(parent)
+    local optionFrame, toggleBtn = makeOptionFrame("Old Lighting", parent, 78)
+
+    local keybindBtn = Instance.new("TextButton")
+    keybindBtn.Name = "KeybindButton"
+    keybindBtn.Size = UDim2.new(0, 130, 0, 26)
+    keybindBtn.Position = UDim2.new(0, 12, 0, 38)
+    keybindBtn.BackgroundColor3 = CONFIG.KeyColor
+    keybindBtn.Text = "Keybind: " .. state.oldLighting.keybind.Name
+    keybindBtn.TextColor3 = CONFIG.TextColor
+    keybindBtn.TextSize = 12
+    keybindBtn.Font = CONFIG.Font
+    keybindBtn.ZIndex = 3
+    keybindBtn.Parent = optionFrame
+
+    local keybindCorner = Instance.new("UICorner")
+    keybindCorner.CornerRadius = UDim.new(0, 8)
+    keybindCorner.Parent = keybindBtn
+
+    local function updateToggleVisual()
+        if state.oldLighting.enabled then
+            toggleBtn.BackgroundColor3 = CONFIG.OnColor
+            toggleBtn.Text = "ON"
+            toggleBtn.TextColor3 = CONFIG.OnText
+        else
+            toggleBtn.BackgroundColor3 = CONFIG.OffColor
+            toggleBtn.Text = "OFF"
+            toggleBtn.TextColor3 = CONFIG.OffText
+        end
+    end
+
+    local function applyFeature()
+        if state.oldLighting.enabled then
+            applyOldLighting()
+        else
+            restoreLighting()
+        end
+    end
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        state.oldLighting.enabled = not state.oldLighting.enabled
+        updateToggleVisual()
+        applyFeature()
+    end)
+
+    local listeningForKey = false
+    keybindBtn.MouseButton1Click:Connect(function()
+        listeningForKey = true
+        keybindBtn.Text = "Press a key..."
+        keybindBtn.BackgroundColor3 = Color3.fromRGB(255, 236, 179)
+    end)
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if listeningForKey then
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                state.oldLighting.keybind = input.KeyCode
+                keybindBtn.Text = "Keybind: " .. input.KeyCode.Name
+                keybindBtn.BackgroundColor3 = CONFIG.KeyColor
+                listeningForKey = false
+            end
+            return
+        end
+        if input.KeyCode == state.oldLighting.keybind then
+            state.oldLighting.enabled = not state.oldLighting.enabled
+            updateToggleVisual()
+            applyFeature()
+        end
+    end)
+
+    updateToggleVisual()
+end
+
+-- ============================================================
+-- OPTION: HITBOX EXPANDER
+-- ============================================================
+local function createHitboxOption(parent)
+    local optionFrame, toggleBtn = makeOptionFrame("Hitbox Expander", parent, 110)
+
+    local keybindBtn = Instance.new("TextButton")
+    keybindBtn.Name = "KeybindButton"
+    keybindBtn.Size = UDim2.new(0, 130, 0, 26)
+    keybindBtn.Position = UDim2.new(0, 12, 0, 38)
+    keybindBtn.BackgroundColor3 = CONFIG.KeyColor
+    keybindBtn.Text = "Keybind: " .. state.hitboxExpander.keybind.Name
+    keybindBtn.TextColor3 = CONFIG.TextColor
+    keybindBtn.TextSize = 12
+    keybindBtn.Font = CONFIG.Font
+    keybindBtn.ZIndex = 3
+    keybindBtn.Parent = optionFrame
+
+    local keybindCorner = Instance.new("UICorner")
+    keybindCorner.CornerRadius = UDim.new(0, 8)
+    keybindCorner.Parent = keybindBtn
+
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Name = "ValueLabel"
+    valueLabel.Size = UDim2.new(0, 100, 0, 20)
+    valueLabel.Position = UDim2.new(0, 12, 0, 68)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = "Value: " .. state.hitboxExpander.value
+    valueLabel.TextColor3 = CONFIG.MutedColor
+    valueLabel.TextSize = 12
+    valueLabel.Font = CONFIG.Font
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+    valueLabel.ZIndex = 3
+    valueLabel.Parent = optionFrame
+
+    local barBg = Instance.new("Frame")
+    barBg.Name = "BarBackground"
+    barBg.Size = UDim2.new(0, 200, 0, 12)
+    barBg.Position = UDim2.new(0, 12, 0, 90)
+    barBg.BackgroundColor3 = CONFIG.TrackColor
+    barBg.BorderSizePixel = 0
+    barBg.ZIndex = 3
+    barBg.Parent = optionFrame
+
+    local barBgCorner = Instance.new("UICorner")
+    barBgCorner.CornerRadius = UDim.new(1, 0)
+    barBgCorner.Parent = barBg
+
+    local barFill = Instance.new("Frame")
+    barFill.Name = "BarFill"
+    barFill.Size = UDim2.new(state.hitboxExpander.value / 100, 0, 1, 0)
+    barFill.BackgroundColor3 = CONFIG.AccentColor
+    barFill.BorderSizePixel = 0
+    barFill.ZIndex = 4
+    barFill.Parent = barBg
+
+    local barFillCorner = Instance.new("UICorner")
+    barFillCorner.CornerRadius = UDim.new(1, 0)
+    barFillCorner.Parent = barFill
+
+    local barInput = Instance.new("TextButton")
+    barInput.Name = "BarInput"
+    barInput.Size = UDim2.new(1, 0, 1, 0)
+    barInput.BackgroundTransparency = 1
+    barInput.Text = ""
+    barInput.ZIndex = 5
+    barInput.Parent = barBg
+
+    local function updateToggleVisual()
+        if state.hitboxExpander.enabled then
+            toggleBtn.BackgroundColor3 = CONFIG.OnColor
+            toggleBtn.Text = "ON"
+            toggleBtn.TextColor3 = CONFIG.OnText
+        else
+            toggleBtn.BackgroundColor3 = CONFIG.OffColor
+            toggleBtn.Text = "OFF"
+            toggleBtn.TextColor3 = CONFIG.OffText
+        end
+    end
+
+    local function applyHitbox()
+        local cfg = state.hitboxExpander
+        local size = cfg.value / 10
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character then
+                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    if cfg.enabled then
+                        hrp.Size = Vector3.new(size, size, size)
+                        hrp.Transparency = 0.7
+                        hrp.CanCollide = false
+                    else
+                        hrp.Size = Vector3.new(2, 2, 1)
+                        hrp.Transparency = 1
+                        hrp.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        state.hitboxExpander.enabled = not state.hitboxExpander.enabled
+        updateToggleVisual()
+        applyHitbox()
+    end)
+
+    local listeningForKey = false
+    keybindBtn.MouseButton1Click:Connect(function()
+        listeningForKey = true
+        keybindBtn.Text = "Press a key..."
+        keybindBtn.BackgroundColor3 = Color3.fromRGB(255, 236, 179)
+    end)
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if listeningForKey then
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                state.hitboxExpander.keybind = input.KeyCode
+                keybindBtn.Text = "Keybind: " .. input.KeyCode.Name
+                keybindBtn.BackgroundColor3 = CONFIG.KeyColor
+                listeningForKey = false
+            end
+            return
+        end
+        if input.KeyCode == state.hitboxExpander.keybind then
+            state.hitboxExpander.enabled = not state.hitboxExpander.enabled
+            updateToggleVisual()
+            applyHitbox()
+        end
+    end)
+
+    local dragging = false
+    local function updateBarFromInput(inputX)
+        local absPos = barBg.AbsolutePosition.X
+        local absSize = barBg.AbsoluteSize.X
+        local relative = math.clamp((inputX - absPos) / absSize, 0, 1)
+        local newValue = math.floor(relative * 100)
+        state.hitboxExpander.value = newValue
+        barFill.Size = UDim2.new(relative, 0, 1, 0)
+        valueLabel.Text = "Value: " .. newValue
+        if state.hitboxExpander.enabled then applyHitbox() end
+    end
+
+    barInput.MouseButton1Down:Connect(function()
+        dragging = true
+        updateBarFromInput(UserInputService:GetMouseLocation().X)
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateBarFromInput(input.Position.X)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    updateToggleVisual()
+end
+
+-- ============================================================
+-- CREATE ALL OPTIONS (each in pcall so one failure can't hide the menu)
+-- ============================================================
+for _, builder in ipairs({ createOldChatOption, createOldLightingOption, createHitboxOption }) do
+    local ok, err = pcall(builder, scrollFrame)
+    if not ok then
+        warn("[Popek Menu] Option failed to build: " .. tostring(err))
+    end
+end
+
+-- ============================================================
+-- TOGGLE MENU VISIBILITY (RightShift)
+-- ============================================================
+local menuToggleKey = Enum.KeyCode.RightShift
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == menuToggleKey then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end)
+
+print("[Popek Menu] Loaded! Press RightShift to toggle the menu.")
